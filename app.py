@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 # Укажите URL вашего FastAPI-бэкенда
-BACKEND_URL = "https://qukka1401.streamlit.app/"
+BACKEND_URL = "https://qukka1401.streamlit.app/convert"
 
 # st.set_page_config(page_title="Конвертер координат", layout="centered")
 
