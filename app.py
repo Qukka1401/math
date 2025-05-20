@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 # Настройка страницы
-st.set_page_config(page_title="Конвертер координат", page_icon="🌍", layout="centered")
+st.set_page_config(page_title="Конвертер координат", layout="centered")
 
 # Кастомные стили
 st.markdown("""
@@ -21,6 +21,28 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #2980b9;
     }
+    /* Стили для загрузчика файлов */
+    .stFileUploader {
+        background-color: #f5f6fa;
+        border: 2px dashed #3498db;
+        border-radius: 8px;
+        padding: 15px;
+        font-family: 'Arial', sans-serif;
+    }
+    .stFileUploader label {
+        color: #2c3e50;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .stFileUploader div[role='button'] {
+        background-color: #3498db;
+        color: white;
+        border-radius: 5px;
+        padding: 8px 12px;
+    }
+    .stFileUploader div[role='button']:hover {
+        background-color: #2980b9;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -30,8 +52,8 @@ BACKEND_URL = "https://math-zz0z.onrender.com/convert"
 # Заголовок
 st.title("Конвертер координат")
 
-# Загрузка файла
-uploaded_file = st.file_uploader("Выберите Excel-файл (.xlsx)", type=["xlsx", "xls"])
+# Загрузка файла с кастомным текстом
+uploaded_file = st.file_uploader("Загрузите Excel-файл (.xlsx или .xls)", type=["xlsx", "xls"])
 
 # Выбор систем
 systems = ["СК-42", "СК-95", "ПЗ-90", "ПЗ-90.02", "ПЗ-90.11", "WGS-84", "ITRF-2008"]
