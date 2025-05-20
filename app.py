@@ -35,7 +35,7 @@ st.markdown("""
 BACKEND_URL = "https://math-zz0z.onrender.com/convert"
 
 # Заголовок
-st.title("Конвертер координат")
+st.title("Преобразование координатных данных")
 
 # Загрузка файла
 uploaded_file = st.file_uploader("Загрузите Excel-файл", type=["xlsx", "xls"])
