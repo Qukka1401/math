@@ -22,7 +22,7 @@ math/
 
 ## Запуск приложения
 1. **Запустите серверную часть FastAPI**:
-   - Серверная часть будет доступна по адресу `https://dashboard.render.com/web/srv-d0mcm6je5dus738di6jg/deploys/dep-d0mcm6re5dus738di6p0`.
+   - Серверная часть будет доступна по адресу `https://math-zz0z.onrender.com/convert`.
 
 2. **Запустите интерфейсную часть Streamlit**:
    - Откройте `https://qukka1401.streamlit.app/convert` в браузере.
