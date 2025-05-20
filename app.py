@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 # Настройка страницы
-st.set_page_config(page_title="Конвертер координат", layout="centered")
+st.set_page_config(page_title="Преобразование координатных данных", layout="centered")
 
 # Кастомные стили
 st.markdown("""
