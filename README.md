@@ -14,7 +14,6 @@ math/
 ├── app.py              # Фронтенд Streamlit для веб-интерфейса
 ├── main.py             # Бэкенд FastAPI для преобразования координат
 ├── parameters.json     # Параметры для преобразования координат
-├── style.css           # Пользовательский CSS для интерфейса Streamlit
 ├── requirements.txt    # Зависимости Python
 ├── .gitignore          # Файл игнорирования Git
 └── README.md           # Этот файл

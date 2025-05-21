@@ -113,6 +113,44 @@ async def convert(
             "csv": stream.getvalue(),
             "report": report_md
         })
+        
+        # Последовательно сформируем отчет на языке Markdown
+        report_content = f"# Отчет по преобразованию координат\n\n"
+        report_content += f"## Общая формула по которой производились вычисления\n\n"
+        if start_system != "ГСК-2011":
+            report_content += f"### формула для перевода в систему ГСК\n"
+        report_content += f"{to_GSK_LaTeX}\n\n"
+        if end_system != "ГСК-2011":
+            report_content += f"### формула для перевода из системы ГСК\n"
+        report_content += f"{from_GSK_LaTeX}\n\n"
+        report_content += f"## Общая формула с подставленными в нее параметрами перехода между выбранными системами.\n\n"
+        if start_system != "ГСК-2011":
+            report_content += f"### формула для перевода {start_system} в ГСК\n\n"
+        report_content += f"{to_GSK_LaTeX_subs}\n\n"
+        if end_system != "ГСК-2011":
+            report_content += f"### формула для перевода ГСК в {end_system}\n\n"
+        report_content += f"{from_GSK_LaTeX_subs}\n\n"
+        report_content += f"# Итог\n\n"
 
+        report_content += f"## Таблица координат {start_system}\n\n"
+        report_content += "| Начальный X | Начальный Y | Начальный Z |\n"
+        report_content += "| --- | --- | --- |\n"
+        for index, row in start_df.iterrows():
+            report_content += f"| {row[1]} | {row[2]} | {row[3]} |\n"
+
+        report_content += f"## Таблица координат {end_system}\n\n"
+        report_content += "| Конечный X | Конечный Y | Конечный Z |\n"
+        report_content += "| --- | --- | --- |\n"
+        print(transformed_df)
+        for index, row in transformed_df.iterrows():
+            report_content += f"| {row[0]} | {row[1]} | {row[2]} |\n"
+
+        report_content += f"## Вывод\n\n"
+        report_content += "Процесс преобразования координат был успешно выполнен, с результатами, представленными выше."
+
+        with open('report.md', 'w') as f:
+            # Записываем отчет
+            f.write(report_content)
+        print(radians(parameters[start_system]['wz']/3600))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
