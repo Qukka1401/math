@@ -59,21 +59,28 @@ if uploaded_file and st.button("Преобразовать"):
             if response.status_code == 200:
                 result = response.json()
 
-                # Отчет
-                st.markdown("### Результат преобразования:")
+                # Отображение краткого отчета
                 st.markdown(result["report"])
 
                 # Первые 5 строк
                 df = pd.read_csv(io.StringIO(result["csv"]))
-                st.markdown("### Первые 5 строк:")
+                st.markdown("### Первые 5 строк результата:")
                 st.dataframe(df.head())
 
-                # Кнопка скачивания
+                # Кнопка скачивания CSV
                 st.download_button(
                     label="Скачать CSV",
                     data=result["csv"],
                     file_name="converted_coordinates.csv",
                     mime="text/csv"
+                )
+
+                # Кнопка скачивания Markdown-отчета
+                st.download_button(
+                    label="Скачать отчет в Markdown",
+                    data=result["markdown_report"],
+                    file_name="report.md",
+                    mime="text/markdown"
                 )
             else:
                 st.error(f"Ошибка: {response.json().get('detail', 'Неизвестная ошибка')}")

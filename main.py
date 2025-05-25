@@ -240,8 +240,6 @@ async def convert(
         if to_system != "ГСК-2011":
             report_content += f"### Перевод из ГСК-2011 в {to_system}\n\n{from_GSK_LaTeX_subs}\n\n"
 
-        report_content += f"# Результаты преобразования\n\n"
-
         # Таблица исходных координат
         report_content += f"## Таблица координат в системе {from_system}\n\n"
         report_content += "| Начальный X | Начальный Y | Начальный Z |\n"
@@ -268,20 +266,19 @@ async def convert(
         stream = io.StringIO()
         result_df.to_csv(stream, index=False)
 
-        # Markdown-отчет для ответа
+        # Markdown-отчет для ответа (без заголовка "Результат преобразования")
         report_md = f"""
-        ## Результат преобразования
+### Исходная система: `{from_system}`
+### Целевая система: `{to_system}`
 
-        ### Исходная система: `{from_system}`
-        ### Целевая система: `{to_system}`
-
-        #### Первые 5 строк результата:
-        {result_df.head().to_markdown(index=False)}
-        """
+#### Первые 5 строк результата:
+{result_df.head().to_markdown(index=False)}
+"""
 
         return JSONResponse(content={
             "csv": stream.getvalue(),
-            "report": report_content
+            "report": report_md,
+            "markdown_report": report_content  # Добавляем полный отчет для скачивания
         })
 
     except Exception as e:
