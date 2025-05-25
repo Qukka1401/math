@@ -13,6 +13,8 @@ try:
         parameters = json.load(f)
 except FileNotFoundError:
     raise HTTPException(status_code=500, detail="Файл parameters.json не найден")
+except json.JSONDecodeError:
+    raise HTTPException(status_code=500, detail="Ошибка в формате файла parameters.json")
 
 def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
     """Преобразует координаты между системами"""
@@ -49,6 +51,12 @@ async def convert(
         required_columns = ['X', 'Y', 'Z']
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=400, detail=f"Файл должен содержать колонки: {required_columns}")
+
+        # Проверка наличия системы в parameters.json
+        if from_system not in parameters:
+            raise HTTPException(status_code=400, detail=f"Система {from_system} не найдена в параметрах")
+        if to_system not in parameters:
+            raise HTTPException(status_code=400, detail=f"Система {to_system} не найдена в параметрах")
 
         converted = []
 
@@ -285,4 +293,4 @@ async def convert(
         })
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
