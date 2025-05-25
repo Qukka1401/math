@@ -67,22 +67,17 @@ if uploaded_file and st.button("Преобразовать"):
                 st.markdown("### Первые 5 строк результата:")
                 st.dataframe(df.head())
 
-                # Кнопка скачивания CSV
-                st.download_button(
-                    label="Скачать CSV",
-                    data=result["csv"],
-                    file_name="converted_coordinates.csv",
-                    mime="text/csv"
-                )
-
                 # Кнопка скачивания Markdown-отчета
-                st.download_button(
-                    label="Скачать отчет в Markdown",
-                    data=result["markdown_report"],
-                    file_name="report.md",
-                    mime="text/markdown"
-                )
+                if "markdown_report" in result:
+                    st.download_button(
+                        label="Скачать отчет в Markdown",
+                        data=result["markdown_report"],
+                        file_name="report.md",
+                        mime="text/markdown"
+                    )
+                else:
+                    st.warning("Markdown-отчет недоступен. Пожалуйста, обновите серверную часть приложения.")
             else:
-                st.error(f"Ошибка: {response.json().get('detail', 'Неизвестная ошибка')}")
+                st.error(f"Ошибка API: {response.json().get('detail', 'Неизвестная ошибка')}")
         except Exception as e:
             st.error(f"Ошибка: {str(e)}")

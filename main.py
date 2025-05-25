@@ -8,8 +8,11 @@ import io
 app = FastAPI()
 
 # Загрузка параметров перехода
-with open("parameters.json", "r") as f:
-    parameters = json.load(f)
+try:
+    with open("parameters.json", "r") as f:
+        parameters = json.load(f)
+except FileNotFoundError:
+    raise HTTPException(status_code=500, detail="Файл parameters.json не найден")
 
 def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
     """Преобразует координаты между системами"""
@@ -278,7 +281,7 @@ async def convert(
         return JSONResponse(content={
             "csv": stream.getvalue(),
             "report": report_md,
-            "markdown_report": report_content  # Добавляем полный отчет для скачивания
+            "markdown_report": report_content  # Полный отчет для скачивания
         })
 
     except Exception as e:
