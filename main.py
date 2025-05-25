@@ -12,15 +12,21 @@ app = FastAPI()
 try:
     with open("parameters.json", "r", encoding="utf-8") as f:
         parameters = json.load(f)
+    print("Loaded parameters:", list(parameters.keys()))  # Debug: Log available systems
 except FileNotFoundError:
     raise HTTPException(status_code=500, detail="Файл parameters.json не найден")
 except json.JSONDecodeError:
     raise HTTPException(status_code=500, detail="Ошибка в формате файла parameters.json")
 
-# Нормализация строк для устранения проблем с кодировкой
+# Нормализация строк
 def normalize_string(s: str) -> str:
-    """Normalize string to remove potential encoding or whitespace issues."""
+    """Normalize string to remove encoding or whitespace issues."""
     return unicodedata.normalize("NFC", s.strip())
+
+# Диагностический эндпоинт для проверки параметров
+@app.get("/parameters")
+async def get_parameters():
+    return {"systems": list(parameters.keys()), "parameters": parameters}
 
 @app.post("/convert")
 async def convert(
@@ -31,6 +37,7 @@ async def convert(
     # Нормализация входных параметров
     from_system = normalize_string(from_system)
     to_system = normalize_string(to_system)
+    print(f"Received request: from_system={from_system}, to_system={to_system}")  # Debug
 
     # Проверка формата файла
     if not file.filename.endswith((".xlsx", ".xls")):
@@ -47,6 +54,7 @@ async def convert(
 
         # Проверка наличия системы в parameters.json
         normalized_parameters = {normalize_string(key): value for key, value in parameters.items()}
+        print("Available systems:", list(normalized_parameters.keys()))  # Debug
         if from_system not in normalized_parameters:
             raise HTTPException(status_code=400, detail=f"Система {from_system} не найдена в параметрах")
         if to_system not in normalized_parameters:
@@ -91,7 +99,7 @@ async def convert(
                                         p_to["dX"], p_to["dY"], p_to["dZ"],
                                         np.radians(p_to["wx"] / 3600),
                                         np.radians(p_to["wy"] / 3600),
-                                        np.radians(p["wz"] / 3600),
+                                        np.radians(p_to["wz"] / 3600),
                                         p_to["m"],
                                         to_gsk=False)
 
@@ -271,7 +279,7 @@ async def convert(
         stream = io.StringIO()
         result_df.to_csv(stream, index=False)
 
-        # Markdown-отчет для ответа (без заголовка "Результат преобразования")
+        # Markdown-отчет для ответа
         report_md = f"""
 ### Исходная система: `{from_system}`
 ### Целевая система: `{to_system}`
@@ -280,19 +288,15 @@ async def convert(
 {result_df.head().to_markdown(index=False)}
 """
 
-        # Отладочная информация
-        print(f"Request received: from_system={from_system}, to_system={to_system}")
-        print(f"Available systems: {list(normalized_parameters.keys())}")
-        print("Response prepared with markdown_report")
-
+        print("Response prepared with markdown_report")  # Debug
         return JSONResponse(content={
             "csv": stream.getvalue(),
             "report": report_md,
-            "markdown_report": report_content  # Полный отчет для скачивания
+            "markdown_report": report_content
         })
 
     except Exception as e:
-        print(f"Error occurred: {str(e)}")  # Логирование ошибки
+        print(f"Error occurred: {str(e)}")  # Debug
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
 
 def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
