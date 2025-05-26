@@ -4,29 +4,42 @@ import pandas as pd
 import numpy as np
 import json
 import io
-import unicodedata
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
 # Загрузка параметров перехода
 try:
-    with open("parameters.json", "r", encoding="utf-8") as f:
+    with open("parameters.json", "r", encoding='utf-8') as f:
         parameters = json.load(f)
-    print("Loaded parameters:", list(parameters.keys()))  # Debug: Log available systems
+    logger.info("parameters.json loaded successfully: %s", list(parameters.keys()))
 except FileNotFoundError:
+    logger.error("parameters.json not found")
     raise HTTPException(status_code=500, detail="Файл parameters.json не найден")
 except json.JSONDecodeError:
+    logger.error("Invalid format in parameters.json")
     raise HTTPException(status_code=500, detail="Ошибка в формате файла parameters.json")
 
-# Нормализация строк
-def normalize_string(s: str) -> str:
-    """Normalize string to remove encoding or whitespace issues."""
-    return unicodedata.normalize("NFC", s.strip())
+def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
+    """Преобразует координаты между системами"""
+    if not to_gsk:
+        m = -m
+        wx, wy, wz = -wx, -wy, -wz
+        dX, dY, dZ = -dX, -dY, -dZ
 
-# Диагностический эндпоинт для проверки параметров
-@app.get("/parameters")
-async def get_parameters():
-    return {"systems": list(parameters.keys()), "parameters": parameters}
+    R = np.array([
+        [1, wz, -wy],
+        [-wz, 1, wx],
+        [wy, -wx, 1]
+    ])
+
+    input_coords = np.array([X, Y, Z])
+    transformed = (1 + m) * R @ input_coords + np.array([dX, dY, dZ])
+    return transformed[0], transformed[1], transformed[2]
 
 @app.post("/convert")
 async def convert(
@@ -34,13 +47,14 @@ async def convert(
     from_system: str = "СК-42",
     to_system: str = "ГСК-2011"
 ):
-    # Нормализация входных параметров
-    from_system = normalize_string(from_system)
-    to_system = normalize_string(to_system)
-    print(f"Received request: from_system={from_system}, to_system={to_system}")  # Debug
+    # Normalize input strings
+    from_system = from_system.strip()
+    to_system = to_system.strip()
+    logger.info("Received request: from_system=%s, to_system=%s", from_system, to_system)
 
     # Проверка формата файла
     if not file.filename.endswith((".xlsx", ".xls")):
+        logger.error("Invalid file format: %s", file.filename)
         raise HTTPException(status_code=400, detail="Требуется файл Excel (.xlsx или .xls)")
 
     try:
@@ -50,14 +64,19 @@ async def convert(
         # Проверка наличия нужных колонок
         required_columns = ['X', 'Y', 'Z']
         if not all(col in df.columns for col in required_columns):
+            logger.error("Missing required columns: %s", required_columns)
             raise HTTPException(status_code=400, detail=f"Файл должен содержать колонки: {required_columns}")
 
         # Проверка наличия системы в parameters.json
-        normalized_parameters = {normalize_string(key): value for key, value in parameters.items()}
-        print("Available systems:", list(normalized_parameters.keys()))  # Debug
-        if from_system not in normalized_parameters:
+        parameters_keys = {k.strip().lower(): k for k in parameters.keys()}
+        from_system_key = next((k for k in parameters_keys if k.lower() == from_system.lower()), None)
+        to_system_key = next((k for k in parameters_keys if k.lower() == to_system.lower()), None)
+
+        if from_system_key is None:
+            logger.error("System not found: %s", from_system)
             raise HTTPException(status_code=400, detail=f"Система {from_system} не найдена в параметрах")
-        if to_system not in normalized_parameters:
+        if to_system_key is None:
+            logger.error("System not found: %s", to_system)
             raise HTTPException(status_code=400, detail=f"Система {to_system} не найдена в параметрах")
 
         converted = []
@@ -65,8 +84,8 @@ async def convert(
         for _, row in df.iterrows():
             X, Y, Z = row['X'], row['Y'], row['Z']
 
-            if to_system == normalize_string("ГСК-2011"):
-                p = normalized_parameters[from_system]
+            if to_system_key == "ГСК-2011":
+                p = parameters[from_system_key]
                 res = convert_coordinates(X, Y, Z,
                                         p["dX"], p["dY"], p["dZ"],
                                         np.radians(p["wx"] / 3600),
@@ -74,8 +93,8 @@ async def convert(
                                         np.radians(p["wz"] / 3600),
                                         p["m"],
                                         to_gsk=True)
-            elif from_system == normalize_string("ГСК-2011"):
-                p = normalized_parameters[to_system]
+            elif from_system_key == "ГСК-2011":
+                p = parameters[to_system_key]
                 res = convert_coordinates(X, Y, Z,
                                         p["dX"], p["dY"], p["dZ"],
                                         np.radians(p["wx"] / 3600),
@@ -84,8 +103,7 @@ async def convert(
                                         p["m"],
                                         to_gsk=False)
             else:
-                # Переход через ГСК-2011
-                p_from = normalized_parameters[from_system]
+                p_from = parameters[from_system_key]
                 X1, Y1, Z1 = convert_coordinates(X, Y, Z,
                                                 p_from["dX"], p_from["dY"], p_from["dZ"],
                                                 np.radians(p_from["wx"] / 3600),
@@ -94,7 +112,7 @@ async def convert(
                                                 p_from["m"],
                                                 to_gsk=True)
 
-                p_to = normalized_parameters[to_system]
+                p_to = parameters[to_system_key]
                 res = convert_coordinates(X1, Y1, Z1,
                                         p_to["dX"], p_to["dY"], p_to["dZ"],
                                         np.radians(p_to["wx"] / 3600),
@@ -161,7 +179,7 @@ async def convert(
         """
 
         # Подстановка параметров
-        p_from = normalized_parameters[from_system]
+        p_from = parameters[from_system_key]
         to_GSK_LaTeX_subs = r"""
         \begin{equation}
         \begin{bmatrix}
@@ -200,7 +218,7 @@ async def convert(
             p_from["dZ"]
         )
 
-        p_to = normalized_parameters[to_system]
+        p_to = parameters[to_system_key]
         from_GSK_LaTeX_subs = r"""
         \begin{equation}
         \begin{bmatrix}
@@ -242,15 +260,15 @@ async def convert(
         # Формирование отчета в Markdown
         report_content = f"# Отчет по преобразованию координат\n\n"
         report_content += f"## Общая формула преобразования\n\n"
-        if from_system != normalize_string("ГСК-2011"):
+        if from_system_key != "ГСК-2011":
             report_content += f"### Формула для перевода в систему ГСК-2011\n\n{to_GSK_LaTeX}\n\n"
-        if to_system != normalize_string("ГСК-2011"):
+        if to_system_key != "ГСК-2011":
             report_content += f"### Формула для перевода из системы ГСК-2011\n\n{from_GSK_LaTeX}\n\n"
 
         report_content += f"## Формула с подставленными параметрами\n\n"
-        if from_system != normalize_string("ГСК-2011"):
+        if from_system_key != "ГСК-2011":
             report_content += f"### Перевод из {from_system} в ГСК-2011\n\n{to_GSK_LaTeX_subs}\n\n"
-        if to_system != normalize_string("ГСК-2011"):
+        if to_system_key != "ГСК-2011":
             report_content += f"### Перевод из ГСК-2011 в {to_system}\n\n{from_GSK_LaTeX_subs}\n\n"
 
         # Таблица исходных координат
@@ -279,29 +297,19 @@ async def convert(
         stream = io.StringIO()
         result_df.to_csv(stream, index=False)
 
-        print("Response prepared with markdown_report")  # Debug
+        # Краткий отчет для отображения (без исходной и целевой системы)
+        report_md = f"""
+#### Первые 5 строк результата:
+{result_df.head().to_markdown(index=False)}
+"""
+
+        logger.info("Request processed successfully, returning response")
         return JSONResponse(content={
             "csv": stream.getvalue(),
+            "report": report_md,
             "markdown_report": report_content
         })
 
     except Exception as e:
-        print(f"Error occurred: {str(e)}")  # Debug
+        logger.error("Error processing request: %s", str(e))
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
-
-def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
-    """Преобразует координаты между системами"""
-    if not to_gsk:
-        m = -m
-        wx, wy, wz = -wx, -wy, -wz
-        dX, dY, dZ = -dX, -dY, -dZ
-
-    R = np.array([
-        [1, wz, -wy],
-        [-wz, 1, wx],
-        [wy, -wx, 1]
-    ])
-
-    input_coords = np.array([X, Y, Z])
-    transformed = (1 + m) * R @ input_coords + np.array([dX, dY, dZ])
-    return transformed[0], transformed[1], transformed[2]
