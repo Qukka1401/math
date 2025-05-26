@@ -46,7 +46,6 @@ from_system = st.selectbox("Исходная система:", systems)
 to_system = st.selectbox("Целевая система:", ["ГСК-2011"])
 
 # Кнопка преобразования
-i# Кнопка преобразования
 if uploaded_file and st.button("Преобразовать"):
     with st.spinner("Обработка данных..."):
         try:
