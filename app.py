@@ -21,7 +21,6 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #2980b9;
     }
-    /* Стили для загрузчика файлов */
     .stFileUploader {
         background-color: #f0faff;
         border: 1px solid #3498db;
@@ -37,13 +36,21 @@ BACKEND_URL = "https://math-zz0z.onrender.com/convert"
 # Заголовок
 st.title("Преобразование координатных данных")
 
+# Инициализация session_state для хранения выбранной системы
+if 'from_system' not in st.session_state:
+    st.session_state.from_system = "СК-42"  # Значение по умолчанию
+
 # Загрузка файла
 uploaded_file = st.file_uploader("Загрузите Excel-файл", type=["xlsx", "xls"])
 
 # Выбор систем
 systems = ["СК-42", "СК-95", "ПЗ-90", "ПЗ-90.02", "ПЗ-90.11", "WGS-84", "ITRF-2008"]
-from_system = st.selectbox("Исходная система:", systems)
+from_system = st.selectbox("Исходная система:", systems, key="from_system_select")
 to_system = st.selectbox("Целевая система:", ["ГСК-2011"])
+
+# Обновление session_state при выборе новой системы
+if from_system != st.session_state.from_system:
+    st.session_state.from_system = from_system
 
 # Кнопка преобразования
 if uploaded_file and st.button("Преобразовать"):
@@ -51,7 +58,7 @@ if uploaded_file and st.button("Преобразовать"):
         try:
             # Подготовка данных
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-            data = {"from_system": from_system, "to_system": to_system}
+            data = {"from_system": st.session_state.from_system, "to_system": to_system}
 
             # Запрос на бэкенд
             response = requests.post(BACKEND_URL, data=data, files=files)
