@@ -279,15 +279,6 @@ async def convert(
         stream = io.StringIO()
         result_df.to_csv(stream, index=False)
 
-        # Markdown-отчет для ответа
-        report_md = f"""
-### Исходная система: `{from_system}`
-### Целевая система: `{to_system}`
-
-#### Первые 5 строк результата:
-{result_df.head().to_markdown(index=False)}
-"""
-
         print("Response prepared with markdown_report")  # Debug
         return JSONResponse(content={
             "csv": stream.getvalue(),
