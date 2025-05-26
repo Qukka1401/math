@@ -282,7 +282,6 @@ async def convert(
         print("Response prepared with markdown_report")  # Debug
         return JSONResponse(content={
             "csv": stream.getvalue(),
-            "report": report_md,
             "markdown_report": report_content
         })
 
