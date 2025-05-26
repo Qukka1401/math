@@ -37,7 +37,6 @@ async def convert(
     # Нормализация входных параметров
     from_system = normalize_string(from_system)
     to_system = normalize_string(to_system)
-    print(f"Received request: from_system={from_system}, to_system={to_system}")  # Debug
 
     # Проверка формата файла
     if not file.filename.endswith((".xlsx", ".xls")):
@@ -54,7 +53,6 @@ async def convert(
 
         # Проверка наличия системы в parameters.json
         normalized_parameters = {normalize_string(key): value for key, value in parameters.items()}
-        print("Available systems:", list(normalized_parameters.keys()))  # Debug
         if from_system not in normalized_parameters:
             raise HTTPException(status_code=400, detail=f"Система {from_system} не найдена в параметрах")
         if to_system not in normalized_parameters:
@@ -279,16 +277,12 @@ async def convert(
         stream = io.StringIO()
         result_df.to_csv(stream, index=False)
 
-        # Markdown-отчет для ответа
+        # Markdown-отчет для ответа (без первых 5 строк)
         report_md = f"""
 ### Исходная система: `{from_system}`
 ### Целевая система: `{to_system}`
-
-#### Первые 5 строк результата:
-{result_df.head().to_markdown(index=False)}
 """
 
-        print("Response prepared with markdown_report")  # Debug
         return JSONResponse(content={
             "csv": stream.getvalue(),
             "report": report_md,
@@ -296,22 +290,4 @@ async def convert(
         })
 
     except Exception as e:
-        print(f"Error occurred: {str(e)}")  # Debug
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
-
-def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
-    """Преобразует координаты между системами"""
-    if not to_gsk:
-        m = -m
-        wx, wy, wz = -wx, -wy, -wz
-        dX, dY, dZ = -dX, -dY, -dZ
-
-    R = np.array([
-        [1, wz, -wy],
-        [-wz, 1, wx],
-        [wy, -wx, 1]
-    ])
-
-    input_coords = np.array([X, Y, Z])
-    transformed = (1 + m) * R @ input_coords + np.array([dX, dY, dZ])
-    return transformed[0], transformed[1], transformed[2]

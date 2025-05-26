@@ -46,6 +46,7 @@ from_system = st.selectbox("Исходная система:", systems)
 to_system = st.selectbox("Целевая система:", ["ГСК-2011"])
 
 # Кнопка преобразования
+i# Кнопка преобразования
 if uploaded_file and st.button("Преобразовать"):
     with st.spinner("Обработка данных..."):
         try:
@@ -61,11 +62,6 @@ if uploaded_file and st.button("Преобразовать"):
 
                 # Отображение краткого отчета
                 st.markdown(result["report"])
-
-                # Первые 5 строк
-                df = pd.read_csv(io.StringIO(result["csv"]))
-                st.markdown("### Первые 5 строк результата:")
-                st.dataframe(df.head())
 
                 # Кнопка скачивания Markdown-отчета
                 if "markdown_report" in result:
