@@ -21,6 +21,7 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #2980b9;
     }
+    /* Стили для загрузчика файлов */
     .stFileUploader {
         background-color: #f0faff;
         border: 1px solid #3498db;
@@ -57,31 +58,14 @@ if uploaded_file and st.button("Преобразовать"):
 
             if response.status_code == 200:
                 result = response.json()
-                # Отладочный вывод
-                st.write("API Response:", result)
-
-                # Проверка наличия необходимых полей
-                if "report" not in result:
-                    st.error("Ошибка: Поле 'report' отсутствует в ответе API. Пожалуйста, обновите серверную часть приложения.")
-                    st.stop()
-                if "csv" not in result:
-                    st.error("Ошибка: Поле 'csv' отсутствует в ответе API. Пожалуйста, обновите серверную часть приложения.")
-                    st.stop()
 
                 # Отображение краткого отчета
                 st.markdown(result["report"])
 
-                # Первые 5 строк (таблица уже в result["report"])
+                # Первые 5 строк
                 df = pd.read_csv(io.StringIO(result["csv"]))
+                st.markdown("### Первые 5 строк результата:")
                 st.dataframe(df.head())
-
-                # Кнопка скачивания CSV
-                st.download_button(
-                    label="Скачать CSV",
-                    data=result["csv"],
-                    file_name="converted_coordinates.csv",
-                    mime="text/csv"
-                )
 
                 # Кнопка скачивания Markdown-отчета
                 if "markdown_report" in result:
