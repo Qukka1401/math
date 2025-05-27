@@ -23,46 +23,6 @@ def normalize_string(s: str) -> str:
     """Normalize string to remove encoding or whitespace issues."""
     return unicodedata.normalize("NFC", s.strip())
 
-# Функция преобразования координат
-def convert(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk=True):
-    """
-    Преобразование координат между системами.
-
-    Args:
-        X, Y, Z (float): Исходные координаты.
-        dX, dY, dZ (float): Смещения.
-        wx, wy, wz (float): Углы поворота в радианах.
-        m (float): Масштабный фактор.
-        to_gsk (bool): Если True, преобразование в ГСК-2011, иначе из ГСК-2011.
-
-    Returns:
-        tuple: Преобразованные координаты (X', Y', Z').
-    """
-    print(f"Calling convert with X={X}, Y={Y}, Z={Z}, to_gsk={to_gsk}")  # Debug
-    # Вектор координат
-    coords = np.array([X, Y, Z])
-
-    # Матрица поворота
-    rotation_matrix = np.array([
-        [1, wz, -wy],
-        [-wz, 1, wx],
-        [wy, -wx, 1]
-    ])
-
-    # Вектор смещений
-    translation = np.array([dX, dY, dZ])
-
-    if to_gsk:
-        # Преобразование в ГСК-2011
-        scale = 1 + m
-        result = scale * np.dot(rotation_matrix, coords) + translation
-    else:
-        # Преобразование из ГСК-2011
-        scale = 1 - m
-        result = scale * np.dot(rotation_matrix.T, coords) - translation
-
-    return result[0], result[1], result[2]
-
 # Диагностический эндпоинт для проверки параметров
 @app.get("/parameters")
 async def get_parameters():
@@ -77,9 +37,6 @@ async def convert(
     # Нормализация входных параметров
     from_system = normalize_string(from_system)
     to_system = normalize_string(to_system)
-
-    # Отладочный вывод для проверки входных параметров
-    print(f"Received from_system={from_system}, to_system={to_system}")
 
     # Проверка формата файла
     if not file.filename.endswith((".xlsx", ".xls")):
@@ -105,49 +62,44 @@ async def convert(
 
         for _, row in df.iterrows():
             X, Y, Z = row['X'], row['Y'], row['Z']
-            print(f"Processing coordinates X={X}, Y={Y}, Z={Z} from {from_system} to {to_system}")  # Debug
 
             if to_system == normalize_string("ГСК-2011"):
                 p = normalized_parameters[from_system]
-                print(f"Converting to GSK-2011 with params: {p}")  # Debug
                 res = convert(X, Y, Z,
-                              p["dX"], p["dY"], p["dZ"],
-                              np.radians(p["wx"] / 3600),
-                              np.radians(p["wy"] / 3600),
-                              np.radians(p["wz"] / 3600),
-                              p["m"],
-                              to_gsk=True)
+                                        p["dX"], p["dY"], p["dZ"],
+                                        np.radians(p["wx"] / 3600),
+                                        np.radians(p["wy"] / 3600),
+                                        np.radians(p["wz"] / 3600),
+                                        p["m"],
+                                        to_gsk=True)
             elif from_system == normalize_string("ГСК-2011"):
                 p = normalized_parameters[to_system]
-                print(f"Converting from GSK-2011 with params: {p}")  # Debug
                 res = convert(X, Y, Z,
-                              p["dX"], p["dY"], p["dZ"],
-                              np.radians(p["wx"] / 3600),
-                              np.radians(p["wy"] / 3600),
-                              np.radians(p["wz"] / 3600),
-                              p["m"],
-                              to_gsk=False)
+                                        p["dX"], p["dY"], p["dZ"],
+                                        np.radians(p["wx"] / 3600),
+                                        np.radians(p["wy"] / 3600),
+                                        np.radians(p["wz"] / 3600),
+                                        p["m"],
+                                        to_gsk=False)
             else:
                 # Переход через ГСК-2011
                 p_from = normalized_parameters[from_system]
-                print(f"Converting to GSK-2011 with params: {p_from}")  # Debug
                 X1, Y1, Z1 = convert(X, Y, Z,
-                                     p_from["dX"], p_from["dY"], p_from["dZ"],
-                                     np.radians(p_from["wx"] / 3600),
-                                     np.radians(p_from["wy"] / 3600),
-                                     np.radians(p_from["wz"] / 3600),
-                                     p_from["m"],
-                                     to_gsk=True)
+                                                p_from["dX"], p_from["dY"], p_from["dZ"],
+                                                np.radians(p_from["wx"] / 3600),
+                                                np.radians(p_from["wy"] / 3600),
+                                                np.radians(p_from["wz"] / 3600),
+                                                p_from["m"],
+                                                to_gsk=True)
 
                 p_to = normalized_parameters[to_system]
-                print(f"Converting from GSK-2011 to {to_system} with params: {p_to}")  # Debug
                 res = convert(X1, Y1, Z1,
-                              p_to["dX"], p_to["dY"], p_to["dZ"],
-                              np.radians(p_to["wx"] / 3600),
-                              np.radians(p_to["wy"] / 3600),
-                              np.radians(p_to["wz"] / 3600),
-                              p_to["m"],
-                              to_gsk=False)
+                                        p_to["dX"], p_to["dY"], p_to["dZ"],
+                                        np.radians(p_to["wx"] / 3600),
+                                        np.radians(p_to["wy"] / 3600),
+                                        np.radians(p_to["wz"] / 3600),
+                                        p_to["m"],
+                                        to_gsk=False)
 
             converted.append(res)
 
@@ -289,9 +241,9 @@ async def convert(
         report_content = f"# Отчет по преобразованию координат\n\n"
         report_content += f"## Общая формула преобразования\n\n"
         if from_system != normalize_string("ГСК-2011"):
-            report_content += f"### Формула для перевода из {from_system} в ГСК-2011\n\n{to_GSK_LaTeX}\n\n"
+            report_content += f"### Формула для перевода в систему ГСК-2011\n\n{to_GSK_LaTeX}\n\n"
         if to_system != normalize_string("ГСК-2011"):
-            report_content += f"### Формула для перевода из ГСК-2011 в {to_system}\n\n{from_GSK_LaTeX}\n\n"
+            report_content += f"### Формула для перевода из системы ГСК-2011\n\n{from_GSK_LaTeX}\n\n"
 
         report_content += f"## Формула с подставленными параметрами\n\n"
         if from_system != normalize_string("ГСК-2011"):
@@ -325,7 +277,7 @@ async def convert(
         stream = io.StringIO()
         result_df.to_csv(stream, index=False)
 
-        # Markdown-отчет для ответа
+        # Markdown-отчет для ответа (без первых 5 строк)
         report_md = f"""
 ### Исходная система: `{from_system}`
 ### Целевая система: `{to_system}`
