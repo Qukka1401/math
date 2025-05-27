@@ -65,7 +65,7 @@ async def convert(
 
             if to_system == normalize_string("ГСК-2011"):
                 p = normalized_parameters[from_system]
-                res = convert(X, Y, Z,
+                res = convert_coordinates(X, Y, Z,
                                         p["dX"], p["dY"], p["dZ"],
                                         np.radians(p["wx"] / 3600),
                                         np.radians(p["wy"] / 3600),
@@ -74,7 +74,7 @@ async def convert(
                                         to_gsk=True)
             elif from_system == normalize_string("ГСК-2011"):
                 p = normalized_parameters[to_system]
-                res = convert(X, Y, Z,
+                res = convert_coordinates(X, Y, Z,
                                         p["dX"], p["dY"], p["dZ"],
                                         np.radians(p["wx"] / 3600),
                                         np.radians(p["wy"] / 3600),
@@ -84,7 +84,7 @@ async def convert(
             else:
                 # Переход через ГСК-2011
                 p_from = normalized_parameters[from_system]
-                X1, Y1, Z1 = convert(X, Y, Z,
+                X1, Y1, Z1 = convert_coordinates(X, Y, Z,
                                                 p_from["dX"], p_from["dY"], p_from["dZ"],
                                                 np.radians(p_from["wx"] / 3600),
                                                 np.radians(p_from["wy"] / 3600),
@@ -93,7 +93,7 @@ async def convert(
                                                 to_gsk=True)
 
                 p_to = normalized_parameters[to_system]
-                res = convert(X1, Y1, Z1,
+                res = convert_coordinates(X1, Y1, Z1,
                                         p_to["dX"], p_to["dY"], p_to["dZ"],
                                         np.radians(p_to["wx"] / 3600),
                                         np.radians(p_to["wy"] / 3600),
@@ -291,3 +291,20 @@ async def convert(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
+
+def convert_coordinates(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk):
+    """Преобразует координаты между системами"""
+    if not to_gsk:
+        m = -m
+        wx, wy, wz = -wx, -wy, -wz
+        dX, dY, dZ = -dX, -dY, -dZ
+
+    R = np.array([
+        [1, wz, -wy],
+        [-wz, 1, wx],
+        [wy, -wx, 1]
+    ])
+
+    input_coords = np.array([X, Y, Z])
+    transformed = (1 + m) * R @ input_coords + np.array([dX, dY, dZ])
+    return transformed[0], transformed[1], transformed[2]
