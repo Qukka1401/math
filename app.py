@@ -58,7 +58,7 @@ if uploaded_file and st.button("Преобразовать"):
         try:
             # Подготовка данных
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-            data = {"from_system": st.session_state.from_system, "to_system": to_system}
+            data = {"from_system": from_system, "to_system": to_system}
 
             # Запрос на бэкенд
             response = requests.post(BACKEND_URL, data=data, files=files)
