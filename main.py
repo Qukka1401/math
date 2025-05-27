@@ -38,6 +38,7 @@ def convert(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk=True):
     Returns:
         tuple: Преобразованные координаты (X', Y', Z').
     """
+    print(f"Calling convert with X={X}, Y={Y}, Z={Z}, to_gsk={to_gsk}")  # Debug
     # Вектор координат
     coords = np.array([X, Y, Z])
 
@@ -104,12 +105,11 @@ async def convert(
 
         for _, row in df.iterrows():
             X, Y, Z = row['X'], row['Y'], row['Z']
-            # Отладочный вывод перед вызовом convert
-            print(f"Processing coordinates X={X}, Y={Y}, Z={Z} from {from_system} to {to_system}")
+            print(f"Processing coordinates X={X}, Y={Y}, Z={Z} from {from_system} to {to_system}")  # Debug
 
             if to_system == normalize_string("ГСК-2011"):
                 p = normalized_parameters[from_system]
-                print(f"Converting to GSK-2011 with params: {p}")
+                print(f"Converting to GSK-2011 with params: {p}")  # Debug
                 res = convert(X, Y, Z,
                               p["dX"], p["dY"], p["dZ"],
                               np.radians(p["wx"] / 3600),
@@ -119,7 +119,7 @@ async def convert(
                               to_gsk=True)
             elif from_system == normalize_string("ГСК-2011"):
                 p = normalized_parameters[to_system]
-                print(f"Converting from GSK-2011 with params: {p}")
+                print(f"Converting from GSK-2011 with params: {p}")  # Debug
                 res = convert(X, Y, Z,
                               p["dX"], p["dY"], p["dZ"],
                               np.radians(p["wx"] / 3600),
@@ -130,7 +130,7 @@ async def convert(
             else:
                 # Переход через ГСК-2011
                 p_from = normalized_parameters[from_system]
-                print(f"Converting to GSK-2011 with params: {p_from}")
+                print(f"Converting to GSK-2011 with params: {p_from}")  # Debug
                 X1, Y1, Z1 = convert(X, Y, Z,
                                      p_from["dX"], p_from["dY"], p_from["dZ"],
                                      np.radians(p_from["wx"] / 3600),
@@ -140,7 +140,7 @@ async def convert(
                                      to_gsk=True)
 
                 p_to = normalized_parameters[to_system]
-                print(f"Converting from GSK-2011 to {to_system} with params: {p_to}")
+                print(f"Converting from GSK-2011 to {to_system} with params: {p_to}")  # Debug
                 res = convert(X1, Y1, Z1,
                               p_to["dX"], p_to["dY"], p_to["dZ"],
                               np.radians(p_to["wx"] / 3600),
