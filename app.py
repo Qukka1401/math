@@ -42,7 +42,7 @@ uploaded_file = st.file_uploader("Загрузите Excel-файл", type=["xls
 
 # Выбор систем
 systems = ["СК-42", "СК-95", "ПЗ-90", "ПЗ-90.02", "ПЗ-90.11", "WGS-84", "ITRF-2008"]
-from_system = st.selectbox("Исходная система:", systems)
+from_system = st.selectbox("Исходная система:", systems, key="from_system_select")
 to_system = st.selectbox("Целевая система:", ["ГСК-2011"])
 
 # Кнопка преобразования
