@@ -23,6 +23,45 @@ def normalize_string(s: str) -> str:
     """Normalize string to remove encoding or whitespace issues."""
     return unicodedata.normalize("NFC", s.strip())
 
+# Функция преобразования координат
+def convert(X, Y, Z, dX, dY, dZ, wx, wy, wz, m, to_gsk=True):
+    """
+    Преобразование координат между системами.
+
+    Args:
+        X, Y, Z (float): Исходные координаты.
+        dX, dY, dZ (float): Смещения.
+        wx, wy, wz (float): Углы поворота в радианах.
+        m (float): Масштабный фактор.
+        to_gsk (bool): Если True, преобразование в ГСК-2011, иначе из ГСК-2011.
+
+    Returns:
+        tuple: Преобразованные координаты (X', Y', Z').
+    """
+    # Вектор координат
+    coords = np.array([X, Y, Z])
+
+    # Матрица поворота
+    rotation_matrix = np.array([
+        [1, wz, -wy],
+        [-wz, 1, wx],
+        [wy, -wx, 1]
+    ])
+
+    # Вектор смещений
+    translation = np.array([dX, dY, dZ])
+
+    if to_gsk:
+        # Преобразование в ГСК-2011
+        scale = 1 + m
+        result = scale * np.dot(rotation_matrix, coords) + translation
+    else:
+        # Преобразование из ГСК-2011
+        scale = 1 - m
+        result = scale * np.dot(rotation_matrix.T, coords) - translation
+
+    return result[0], result[1], result[2]
+
 # Диагностический эндпоинт для проверки параметров
 @app.get("/parameters")
 async def get_parameters():
@@ -31,7 +70,7 @@ async def get_parameters():
 @app.post("/convert")
 async def convert(
     file: UploadFile = File(...),
-    from_system: str = "СК-42",  # Значение по умолчанию для отладки, но оно должно перезаписываться
+    from_system: str = "СК-42",
     to_system: str = "ГСК-2011"
 ):
     # Нормализация входных параметров
